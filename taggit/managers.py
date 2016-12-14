@@ -387,11 +387,12 @@ class TaggableManager(RelatedField, Field):
     def __init__(self, verbose_name=_("Tags"),
                  help_text=_("A comma-separated list of tags."),
                  through=None, blank=False, related_name=None, to=None,
-                 manager=_TaggableManager):
+                 manager=_TaggableManager, concrete_inherit=False):
 
         self.through = through or TaggedItem
         self.swappable = False
         self.manager = manager
+        self.concrete_inherit = concrete_inherit
 
         rel = TaggableRel(self, related_name, self.through, to=to)
 
@@ -412,8 +413,8 @@ class TaggableManager(RelatedField, Field):
                              "before you can access their tags." % model.__name__)
         manager = self.manager(
             through=self.through,
-            model=model,
-            instance=instance,
+            model=self._get_possible_parents(model),
+            instance=self._get_possible_parents(instance),
             prefetch_cache_name=self.name
         )
         return manager
@@ -526,7 +527,7 @@ class TaggableManager(RelatedField, Field):
                                  ' same through model.')
 
     def save_form_data(self, instance, value):
-        getattr(instance, self.name).set(*value)
+        getattr(self._get_possible_parents(instance), self.name).set(*value)
 
     def formfield(self, form_class=TagMultipleChoiceField, **kwargs):
         db = kwargs.get('using', None)
@@ -548,7 +549,9 @@ class TaggableManager(RelatedField, Field):
 
     def value_from_object(self, instance):
         if instance.pk:
-            return self.through.objects.filter(**self.through.lookup_kwargs(instance))
+            return self.through.objects.filter(
+                **self.through.lookup_kwargs(self._get_possible_parents(instance))
+            )
         return self.through.objects.none()
 
     def related_query_name(self):
@@ -615,6 +618,9 @@ class TaggableManager(RelatedField, Field):
                                                            len(content_type_ids)))
             params = content_type_ids
         return extra_where, params
+
+    def _get_possible_parents(self, child):
+        return _get_super_instance(child) if self.concrete_inherit else child
 
     def _get_mm_case_path_info(self, direct=False):
         pathinfos = []
@@ -698,6 +704,18 @@ def _get_subclasses(model):
                 getattr(field.field.rel, "parent_link", None)):
             subclasses.extend(_get_subclasses(field.model))
     return subclasses
+
+
+def _get_super_instance(instance):
+    if hasattr(instance, '_meta') and instance._meta.parents:
+        for parent_class, rel_field in instance._meta.parents.items():
+            if not parent_class._meta.abstract:
+                if instance.__class__.__name__ == 'ModelBase':
+                    # it's a model object
+                    return parent_class
+                # it's an instance of a model
+                return getattr(instance, rel_field.name)
+    return instance
 
 
 TaggableManager = total_ordering(TaggableManager)
