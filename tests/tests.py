@@ -18,7 +18,7 @@ from django.utils.encoding import force_text
 
 from .forms import (CustomPKFoodForm, DirectCustomPKFoodForm, DirectFoodForm,
                     FoodForm, OfficialFoodForm)
-from .models import (Article, Child, CustomManager, CustomPKFood,
+from .models import (Article, Parent, Child, CustomManager, CustomPKFood,
                      CustomPKHousePet, CustomPKPet, DirectCustomPKFood,
                      DirectCustomPKHousePet, DirectCustomPKPet, DirectFood,
                      DirectHousePet, DirectPet, Food, HousePet, Movie,
@@ -988,13 +988,67 @@ class InheritedPrefetchTests(TestCase):
         child.tags.add('tag 1', 'tag 2', 'tag 3', 'tag 4')
 
         child = Child.objects.get()
+        parent = Parent.objects.get()
         no_prefetch_tags = child.tags.all()
+        parent_no_prefetch_tags = parent.tags.all()
         self.assertEqual(4, no_prefetch_tags.count())
-        child = Child.objects.prefetch_related('tags').get()
+        self.assertEqual(4, parent_no_prefetch_tags.count())
+
+        child_query = Child.objects.prefetch_related('tags')
+        parent_query = Parent.objects.prefetch_related('tags')
+        child = child_query.get()
+        parent = parent_query.get()
         prefetch_tags = child.tags.all()
+        parent_prefetch_tags = parent.tags.all()
         self.assertEqual(4, prefetch_tags.count())
+        self.assertEqual(4, parent_prefetch_tags.count())
+
+        self.assertIn('tags', parent._prefetched_objects_cache)
+        self.assertEqual(4, len(parent._prefetched_objects_cache['tags']))
+        self.assertIn('tags', child._prefetched_objects_cache)
+        self.assertEqual(4, len(child._prefetched_objects_cache['tags']))
+
         self.assertEqual(set([t.name for t in no_prefetch_tags]),
                          set([t.name for t in prefetch_tags]))
+        self.assertEqual(set([t.name for t in no_prefetch_tags]),
+                         set([t.name for t in parent_no_prefetch_tags]))
+        self.assertEqual(set([t.name for t in parent_no_prefetch_tags]),
+                         set([t.name for t in parent_prefetch_tags]))
+        self.assertEqual(set([t.name for t in prefetch_tags]),
+                         set([t.name for t in parent_prefetch_tags]))
+
+    def test_inherited_parent_tags_with_prefetch(self):
+        child = Child()
+        child.save()
+        child.parent_ptr.tags.add('tag 1', 'tag 2', 'tag 3')
+
+        parent = Parent.objects.get()
+        child = Child.objects.get()
+        no_prefetch_tags = parent.tags.all()
+        child_no_prefetch_tags = child.tags.all()
+        self.assertEqual(3, no_prefetch_tags.count())
+        self.assertEqual(3, child_no_prefetch_tags.count())
+
+        parent = Parent.objects.prefetch_related('tags').get()
+        child = Child.objects.prefetch_related('tags').get()
+        prefetch_tags = parent.tags.all()
+        child_prefetch_tags = child.tags.all()
+        self.assertEqual(3, prefetch_tags.count())
+        self.assertEqual(3, child_prefetch_tags.count())
+
+        self.assertIn('tags', parent._prefetched_objects_cache)
+        self.assertEqual(3, len(parent._prefetched_objects_cache['tags']))
+        self.assertIn('tags', child._prefetched_objects_cache)
+        self.assertEqual(3, len(child._prefetched_objects_cache['tags']))
+
+        self.assertEqual(set([t.name for t in no_prefetch_tags]),
+                         set([t.name for t in prefetch_tags]))
+        self.assertEqual(set([t.name for t in no_prefetch_tags]),
+                         set([t.name for t in child_no_prefetch_tags]))
+        self.assertEqual(set([t.name for t in child_no_prefetch_tags]),
+                         set([t.name for t in child_prefetch_tags]))
+        self.assertEqual(set([t.name for t in prefetch_tags]),
+                         set([t.name for t in child_prefetch_tags]))
 
 
 class DjangoCheckTests(UnitTestCase):

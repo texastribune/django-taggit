@@ -238,7 +238,7 @@ class CustomManager(models.Model):
 
 
 class Parent(models.Model):
-    tags = TaggableManager()
+    tags = TaggableManager(concrete_inherit=True)
 
 
 class Child(Parent):
