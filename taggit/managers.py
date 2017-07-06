@@ -518,10 +518,10 @@ class TaggableManager(RelatedField, Field):
         queryset = self.through.objects.none()
         if VERSION >= (1, 9):
             if self.remote_field.model:
-                queryset = self.remote_field.model.objects.using(db)
+                queryset = self.remote_field.model._default_manager.using(db)
         else:
             if self.rel.to:
-                queryset = self.rel.to.objects.using(db)
+                queryset = self.rel.to._default_manager.using(db)
         defaults = {
             "label": capfirst(self.verbose_name),
             "help_text": self.help_text,
