@@ -7,11 +7,17 @@ from taggit.models import (
     CommonGenericTaggedItemBase,
     GenericTaggedItemBase,
     GenericUUIDTaggedItemBase,
+    ItemBase,
     Tag,
     TagBase,
     TaggedItem,
     TaggedItemBase,
 )
+
+
+# base test model
+class TestModel(models.Model):
+    tags = TaggableManager()
 
 
 # Ensure that two TaggableManagers with custom through model are allowed.
@@ -51,6 +57,29 @@ class Food(models.Model):
     name = models.CharField(max_length=50)
 
     tags = TaggableManager()
+
+    def __str__(self):
+        return self.name
+
+
+class BaseFood(models.Model):
+    name = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.name
+
+
+class MultiInheritanceLazyResolutionFoodTag(TaggedItemBase):
+    content_object = models.ForeignKey(
+        "MultiInheritanceFood", related_name="tagged_items", on_delete=models.CASCADE
+    )
+
+    class Meta:
+        unique_together = [["content_object", "tag"]]
+
+
+class MultiInheritanceFood(BaseFood):
+    tags = TaggableManager(through=MultiInheritanceLazyResolutionFoodTag)
 
     def __str__(self):
         return self.name
@@ -102,6 +131,58 @@ class DirectPet(models.Model):
 
 
 class DirectHousePet(DirectPet):
+    trained = models.BooleanField(default=False)
+
+
+# Test direct-tagging with custom through model and custom tag
+
+
+class TrackedTag(TagBase):
+    created_by = models.CharField(max_length=50)
+    created_dt = models.DateTimeField(auto_now_add=True)
+    description = models.TextField(blank=True, max_length=255, null=True)
+
+
+class TaggedTrackedFood(ItemBase):
+    content_object = models.ForeignKey("DirectTrackedFood", on_delete=models.CASCADE)
+    tag = models.ForeignKey(
+        TrackedTag, on_delete=models.CASCADE, related_name="%(class)s_items"
+    )
+    created_by = models.CharField(max_length=50)
+    created_dt = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ["content_object", "tag"]
+
+
+class TaggedTrackedPet(ItemBase):
+    content_object = models.ForeignKey("DirectTrackedPet", on_delete=models.CASCADE)
+    tag = models.ForeignKey(
+        TrackedTag, on_delete=models.CASCADE, related_name="%(class)s_items"
+    )
+    created_by = models.CharField(max_length=50)
+    created_dt = models.DateTimeField(auto_now_add=True)
+
+
+class DirectTrackedFood(models.Model):
+    name = models.CharField(max_length=50)
+
+    tags = TaggableManager(through=TaggedTrackedFood)
+
+    def __str__(self):
+        return self.name
+
+
+class DirectTrackedPet(models.Model):
+    name = models.CharField(max_length=50)
+
+    tags = TaggableManager(through=TaggedTrackedPet)
+
+    def __str__(self):
+        return self.name
+
+
+class DirectTrackedHousePet(DirectTrackedPet):
     trained = models.BooleanField(default=False)
 
 
@@ -184,6 +265,7 @@ class OfficialThroughModel(GenericTaggedItemBase):
     tag = models.ForeignKey(
         OfficialTag, related_name="tagged_items", on_delete=models.CASCADE
     )
+    extra_field = models.CharField(max_length=10)
 
     class Meta:
         unique_together = [["content_type", "object_id", "tag"]]
@@ -224,6 +306,11 @@ class Photo(Media):
 
 class Movie(Media):
     pass
+
+
+class ProxyPhoto(Photo):
+    class Meta:
+        proxy = True
 
 
 class ArticleTag(Tag):
@@ -274,8 +361,33 @@ class UUIDFood(models.Model):
     name = models.CharField(max_length=50)
     tags = TaggableManager(through="UUIDTaggedItem")
 
+    created_at = models.DateTimeField(auto_now_add=True)
+
     def __str__(self):
         return self.name
+
+    class Meta:
+        # With a UUIDField pk, objects are not always ordered by creation time. So explicitly set ordering.
+        ordering = ["created_at"]
+
+
+class UUIDPet(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=50)
+
+    tags = TaggableManager(through="UUIDTaggedItem")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        # With a UUIDField pk, objects are not always ordered by creation time. So explicitly set ordering.
+        ordering = ["created_at"]
+
+
+class UUIDHousePet(UUIDPet):
+    trained = models.BooleanField(default=False)
 
 
 class UUIDTag(TagBase):
@@ -287,9 +399,38 @@ class UUIDTaggedItem(GenericUUIDTaggedItemBase):
         UUIDTag, related_name="%(app_label)s_%(class)s_items", on_delete=models.CASCADE
     )
 
+    class Meta:
+        unique_together = [["content_type", "object_id", "tag"]]
+
+
+class TenantTag(TagBase):
+    name = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=100, allow_unicode=True)
+    tenant_id = models.IntegerField()
+
+    class Meta:
+        unique_together = [["name", "tenant_id"], ["slug", "tenant_id"]]
+
+
+class TenantTaggedItem(GenericTaggedItemBase):
+    tag = models.ForeignKey(
+        TenantTag,
+        related_name="%(app_label)s_%(class)s_items",
+        on_delete=models.CASCADE,
+    )
+
+
+class TenantModel(models.Model):
+    name = models.CharField(max_length=50)
+    tags = TaggableManager(through=TenantTaggedItem)
+
 
 # Exists to verify system check failure.
 # tests.Name.tags: (fields.E303) Reverse query name for 'Name.tags' clashes with field name 'Tag.name'.
 # 	HINT: Rename field 'Tag.name', or add/change a related_name argument to the definition for field 'Name.tags'.
 class Name(models.Model):
     tags = TaggableManager(related_name="a_unique_related_name")
+
+
+class OrderedModel(models.Model):
+    tags = TaggableManager(ordering=["name"])

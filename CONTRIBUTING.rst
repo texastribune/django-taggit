@@ -64,12 +64,35 @@ To do work on the docs, proceed with the following steps:
 
 .. code-block:: console
 
-    cd docs
     pip install sphinx
-    make html
+    sphinx-build -n -W docs docs/_build
+
+Add a changelog line
+--------------------
+
+Even when the change is minor, a changelog line is helpful to both describe
+the intent of the change, and to give a heads up to people upgrading. You can
+add a line in the ``(Unreleased)`` section of ``CHANGELOG.rst``, along with
+any more detailed explanations for more complicated changes.
 
 Send pull request
 -----------------
 
 It is now time to push your changes to GitHub and open a `pull request
 <https://github.com/jazzband/django-taggit/pulls>`_!
+
+
+Release Checklist
+-----------------
+
+These steps need to happen by a release maintainer.
+
+To make a release, the following needs to happen:
+
+- Make sure that ``setup.cfg`` is set up properly w/r/t Python and Django requirements
+- Make sure the documentation (``docs/index.rst``) also describes the right Python/Django versions
+- Bump the version number in ``taggit/__init__.py``
+- Update the changelog (making sure to add the (Unreleased) section to the top)
+- Get those changes onto the ``master`` branch
+- Tag the commit with the version number
+- CI should then upload a release to be verified through Jazzband

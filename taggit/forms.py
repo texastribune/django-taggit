@@ -5,11 +5,19 @@ from django.utils.translation import gettext as _
 from taggit.utils import edit_string_for_tags, parse_tags
 
 
-class TagWidget(forms.TextInput):
+class TagWidgetMixin:
     def format_value(self, value):
         if value is not None and not isinstance(value, str):
             value = edit_string_for_tags(value)
         return super().format_value(value)
+
+
+class TagWidget(TagWidgetMixin, forms.TextInput):
+    pass
+
+
+class TextareaTagWidget(TagWidgetMixin, forms.Textarea):
+    pass
 
 
 class TagField(forms.CharField):
@@ -35,7 +43,10 @@ class TagField(forms.CharField):
         except forms.ValidationError:
             pass
 
-        if initial_value is None:
+        # normalize "empty values"
+        if not data_value:
+            data_value = []
+        if not initial_value:
             initial_value = []
 
         initial_value = [tag.name for tag in initial_value]
