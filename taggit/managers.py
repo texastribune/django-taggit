@@ -306,7 +306,7 @@ class _TaggableManager(models.Manager):
                 else:
                     new_objs.append(obj)
 
-            self.remove(*old_tag_strs)
+            self.remove(*old_tags)
             self.add(*new_objs, through_defaults=through_defaults, **kwargs)
 
     @require_instance_manager

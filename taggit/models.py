@@ -17,7 +17,7 @@ except ImportError:
 
 class TagBase(models.Model):
     name = models.CharField(
-        verbose_name=pgettext_lazy("A tag name", "name"), unique=True, max_length=100
+        verbose_name=pgettext_lazy("A tag name", "name"), max_length=100
     )
     slug = models.SlugField(
         verbose_name=pgettext_lazy("A tag slug", "slug"),
