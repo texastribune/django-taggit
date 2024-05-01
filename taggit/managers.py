@@ -291,29 +291,27 @@ class _TaggableManager(models.Manager):
             # make sure we're working with a collection of a uniform type
             objs = self._to_tag_model_instances(tags, tag_kwargs)
 
-            # get the existing tags
-            old_tags = set(
-                t.tag
-                for t in self.through._default_manager.using(db)
+            # get the existing tag strings
+            old_tag_strs = set(
+                self.through._default_manager.using(db)
                 .filter(**self._lookup_kwargs())
-                .select_related("tag")
+                .values_list("tag__name", flat=True)
             )
 
             new_objs = []
             for obj in objs:
-                if obj in old_tags:
-                    old_tags.remove(obj)
+                if obj.name in old_tag_strs:
+                    old_tag_strs.remove(obj.name)
                 else:
                     new_objs.append(obj)
 
-            self.remove(*old_tags)
+            self.remove(*old_tag_strs)
             self.add(*new_objs, through_defaults=through_defaults, **kwargs)
 
     @require_instance_manager
     def remove(self, *tags):
         if not tags:
             return
-        tag_objs = self._to_tag_model_instances(tags)
 
         self._remove_prefetched_objects()
         db = router.db_for_write(self.through, instance=self.instance)
@@ -321,7 +319,7 @@ class _TaggableManager(models.Manager):
         qs = (
             self.through._default_manager.using(db)
             .filter(**self._lookup_kwargs())
-            .filter(tag__in=tag_objs)
+            .filter(tag__name__in=tags)
         )
 
         old_ids = set(qs.values_list("tag_id", flat=True))
