@@ -310,10 +310,13 @@ class _TaggableManager(models.Manager):
             self.add(*new_objs, through_defaults=through_defaults, **kwargs)
 
     @require_instance_manager
-    def remove(self, *tags):
+    def remove(self, *tags, tag_kwargs=None):
         if not tags:
             return
-        tag_objs = self._to_tag_model_instances(tags)
+        if tag_kwargs is None:
+            tag_kwargs = {}
+        
+        tag_objs = self._to_tag_model_instances(tags, tag_kwargs)
 
         self._remove_prefetched_objects()
         db = router.db_for_write(self.through, instance=self.instance)
