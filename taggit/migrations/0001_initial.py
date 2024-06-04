@@ -2,7 +2,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [("contenttypes", "0002_remove_content_type_name")]
 
     operations = [
@@ -22,17 +21,17 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="", unique=True, max_length=100, verbose_name="Name"
+                        help_text="", unique=True, max_length=100, verbose_name="name"
                     ),
                 ),
                 (
                     "slug",
                     models.SlugField(
-                        help_text="", unique=True, max_length=100, verbose_name="Slug"
+                        help_text="", unique=True, max_length=100, verbose_name="slug"
                     ),
                 ),
             ],
-            options={"verbose_name": "Tag", "verbose_name_plural": "Tags"},
+            options={"verbose_name": "tag", "verbose_name_plural": "tags"},
             bases=(models.Model,),
         ),
         migrations.CreateModel(
@@ -51,14 +50,14 @@ class Migration(migrations.Migration):
                 (
                     "object_id",
                     models.IntegerField(
-                        help_text="", verbose_name="Object id", db_index=True
+                        help_text="", verbose_name="object ID", db_index=True
                     ),
                 ),
                 (
                     "content_type",
                     models.ForeignKey(
                         related_name="taggit_taggeditem_tagged_items",
-                        verbose_name="Content type",
+                        verbose_name="content type",
                         to="contenttypes.ContentType",
                         help_text="",
                         on_delete=models.CASCADE,
@@ -75,8 +74,8 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
-                "verbose_name": "Tagged Item",
-                "verbose_name_plural": "Tagged Items",
+                "verbose_name": "tagged item",
+                "verbose_name_plural": "tagged items",
             },
             bases=(models.Model,),
         ),

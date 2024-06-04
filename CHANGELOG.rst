@@ -1,6 +1,141 @@
 Changelog
 =========
 
+(Unreleased)
+~~~~~~~~~~~~
+
+5.0.1 (2023-10-26)
+~~~~~~~~~~~~~~~~~~
+
+* Fix the package metadata to properly reflect the right Django and Python version requirements
+  Release 5.0.0 improperly stated its Django bounds as >=3.2, so people installing without bounds will end up on a version that won't work.
+
+5.0.0 (2023-10-24)
+~~~~~~~~~~~~~~~~~~
+* **Backwards icompatible:** Rename the (``content_type``, ``object_id``) index on ``TaggedItem``.
+  It is very unlikely for this to affect your code itself, and a migration will rename the index. This should not cause any downtime according to my research (Postgres does not lock the table for index renames, and Oracle holds a tiny lock to do it, and the change is only to the metadata, so is not dependent on table size).
+
+* **Backwards incompatible:** Remove the ``.index_together`` and ``.unique_together`` attributes on ``TaggedItem``
+
+  We are instead using ``constraints`` and ``indexes`` to set up these properties.
+* Remove support for Django 3.2.
+* Remove usage of deprecated APIs for Django 4.2
+* Remove support for Python 3.7 (no code changes involved)
+* Fix ``tag_kwargs`` and ``TAGGIT_CASE_INSENSITIVE=True`` discrepency.
+
+4.0.0 (2023-05-04)
+~~~~~~~~~~~~~~~~~~
+* Remove Python 3.6 support (no code changes occurred, but we no longer test this release).
+* Remove Django 4.0 support (no code changes occurred, but we no longer test this release).
+* Add Django 4.2 support.
+
+3.1.0 (2022-11-08)
+~~~~~~~~~~~~~~~~~~
+
+* Add Python 3.11 support (no code changes were needed, but now we test this release).
+* Add Django 4.1 support (no code changes were needed, but now we test this release).
+* Fixed an issue where object caches would not be properly cleared after updating tags, leading
+  to stale reads in cases where ``prefetch_related`` is used.
+* Change ``TagListSerializerField`` to be a subclass of ``ListField``. This should improve support for API document generation. This change should not affect API behavior, but might affect metaprogramming code, so please procede carefully during this update.
+
+3.0.0 (2022-05-02)
+~~~~~~~~~~~~~~~~~~
+
+* **Backwards incompatible:** Tag slugification used to silently strip non-ASCII characters
+  from the tag name to make the slug. This leads to a lot of confusion for anyone using
+  languages with non-latin alphabets, as well as weird performance issues.
+
+  Tag slugification will now, by default, maintain unicode characters as-is during
+  slugification. This will lead to less surprises, but might cause issues for you if you are
+  expecting all of your tag slugs to fit within a regex like ``[a-zA-Z0-9]`` (for example in
+  URL routing configurations).
+
+  Generally speaking, this should not require action on your part as a library user, as
+  existing tag slugs are persisted in the database, and only new tags will receive the
+  enhanced unicode-compatible slug.
+
+  If you wish to maintain the old stripping behavior, set the setting
+  ``TAGGIT_STRIP_UNICODE_WHEN_SLUGIFYING`` to ``True``.
+
+  As a reminder, custom tag models can easily customize slugification behavior by overriding
+  the ``slugify`` method to your business needs.
+
+`` Drop Django 2.2 support.
+
+2.1.0 (2022-01-24)
+~~~~~~~~~~~~~~~~~~
+
+* Add Python 3.10 support.
+* Add Django 4.0 support.
+* Drop Django 3.1 support.
+
+
+2.0.0 (2021-11-14)
+~~~~~~~~~~~~~~~~~~
+
+* **Backwards incompatible:** ``TaggableManager.set`` now takes a list of tags
+  (instead of varargs) so that its API matches Django's ``RelatedManager.set``. Example:
+
+  - previously: ``item.tags.set("red", "blue")``
+  - now: ``item.tags.set(["red", "blue"])``
+
+* Fix issue where ``TagField`` would incorrectly report that a field has changed on empty values.
+* Update Russian translation.
+* Add Persian translation
+* Fix issue for many languages where content types were not being properly translated.
+* Provide translators additional context regarding strings in TagBase model.
+
+
+1.5.1 (2021-07-01)
+~~~~~~~~~~~~~~~~~~
+
+* Fix compiled Ukranian translation (which would cause a failure on load for this locale).
+* Update compiled Danish translation.
+
+
+1.5.0 (2021-06-30)
+~~~~~~~~~~~~~~~~~~
+
+* Vendor in the `django-taggit-serializer` project (under `taggit.serializers`).
+* Add Arabic translation.
+* Add Ukranian translation.
+
+
+1.4.0 (2021-04-19)
+~~~~~~~~~~~~~~~~~~
+
+* Add Python 3.9 support.
+* Remove Python 3.5 support.
+* Add Django 3.2 support.
+* Remove Django 1.11 and 3.0 support.
+* Add Danish translation.
+* Fix crashing that could occur with ``similar_objects`` in multi-inheritance contexts.
+* Add support for custom fields on through table models with `through_defaults` for ``TaggedManager.add`` and ``TaggedManager.set``.
+
+
+1.3.0 (2020-05-19)
+~~~~~~~~~~~~~~~~~~
+
+* Model and field ``verbose_name`` and ``verbose_name_plural`` attributes are
+  now lowercase. This simplifies using the name in the middle of a sentence.
+  When used as a header, title, or at the beginning of a sentence, a text
+  transformed can be used to adjust the case.
+* Fix prefetch_related when using UUIDTaggedItem.
+* Allow for passing in extra constructor parameters when using
+  ``TaggableManager.add``. This is especially useful when using custom
+  tag models.
+
+1.2.0 (2019-12-03)
+~~~~~~~~~~~~~~~~~~
+
+* **Removed** support for end-of-life Django 2.0 and 2.1.
+* Added support for Django 3.0.
+* Added support for Python 3.8.
+* Moved ``TaggedItemBase.tags_for()`` to ItemBase.
+* Replaced reference to removed Django's ``.virtual_fields`` with
+  ``.private_field``.
+* Added ``TextareaTagWidget``.
+
 1.1.0 (2019-03-22)
 ~~~~~~~~~~~~~~~~~~
 

@@ -41,3 +41,7 @@ TEMPLATES = [
 DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}}
 
 STATIC_URL = "/static/"
+
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+
+USE_TZ = True
